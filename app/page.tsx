@@ -1,69 +1,28 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo, useState } from "react";
+import { Activity, AlertTriangle, ArrowUpRight, BarChart3, Bell, ChevronDown, CircleHelp, Cloud, Database, FileCheck2, LayoutDashboard, MapPin, Menu, MoreHorizontal, Search, ShieldCheck, Sparkles, UploadCloud, X } from "lucide-react";
+import { demoEvidence, demoProjects } from "@/data/demo";
+import type { Evidence, VerificationStatus } from "@/types";
+
+const navItems = [["Overview", LayoutDashboard], ["Projects", BarChart3], ["Evidence", FileCheck2], ["Timeline", Activity], ["Impact Copilot", Sparkles], ["Verification", ShieldCheck], ["Reports", ArrowUpRight]] as const;
+const statusStyles: Record<VerificationStatus, string> = { VERIFIED: "status-verified", PARTIALLY_VERIFIED: "status-partial", NEEDS_REVIEW: "status-review", UNSUPPORTED: "status-unsupported", POSSIBLE_REUSE: "status-reuse" };
+
+function Metric({ label, value, detail, tone = "blue" }: { label: string; value: string; detail: string; tone?: "blue" | "green" | "amber" }) {
+  return <div className="metric-card"><div className={`metric-icon ${tone}`}><Activity size={17} /></div><div><p className="eyebrow">{label}</p><p className="metric-value">{value}</p><p className="metric-detail">{detail}</p></div></div>;
+}
+
+function EvidenceDrawer({ evidence, onClose }: { evidence: Evidence; onClose: () => void }) {
+  return <div className="drawer-backdrop" onClick={onClose}><aside className="evidence-drawer" onClick={(event) => event.stopPropagation()}><div className="drawer-head"><div><p className="eyebrow">{evidence.id}</p><h2>Evidence intelligence</h2></div><button className="icon-button" aria-label="Close evidence drawer" onClick={onClose}><X size={18} /></button></div><img src={evidence.imageUrl} alt={evidence.caption} className="drawer-image" /><div className="drawer-content"><div className="drawer-title-row"><div><h3>{evidence.caption}</h3><p className="muted">{evidence.projectName} · {evidence.location}</p></div><span className={`status-pill ${statusStyles[evidence.status]}`}>{evidence.status.replaceAll("_", " ")}</span></div><div className="trust-panel"><div><p className="eyebrow">GroundTruth trust score</p><strong>{evidence.trustScore}<small>/100</small></strong></div><div className="score-ring"><span>{evidence.trustScore}</span></div></div><div className="detail-grid"><div><span>Captured</span><b>{evidence.capturedAt}</b></div><div><span>Source</span><b>Cloudinary</b></div><div><span>AI confidence</span><b>{evidence.confidence}%</b></div><div><span>GPS</span><b>{evidence.gps ? "Available" : "Unavailable"}</b></div></div><div className="drawer-section"><p className="eyebrow">Observable evidence</p><p>{evidence.description}</p></div><div className="drawer-section"><p className="eyebrow">Detected objects</p><div className="tag-list">{evidence.detectedObjects.map((object) => <span key={object}>{object}</span>)}</div></div><div className="drawer-section alert-box"><AlertTriangle size={17} /><div><b>Potential inconsistency detected</b><p>{evidence.flags[0] ?? "No automated concerns. Human review remains recommended."}</p></div></div></div></aside></div>;
+}
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+  const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null);
+  const [query, setQuery] = useState("");
+  const [activeNav, setActiveNav] = useState("Overview");
+  const [mobileNav, setMobileNav] = useState(false);
+  const filteredEvidence = useMemo(() => demoEvidence.filter((item) => `${item.caption} ${item.projectName} ${item.location}`.toLowerCase().includes(query.toLowerCase())), [query]);
+  const statusCounts = (Object.keys(statusStyles) as VerificationStatus[]).map((status) => ({ status, count: demoEvidence.filter((item) => item.status === status).length }));
+
+  return <main className="app-shell"><aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}><div className="brand"><div className="brand-mark"><ShieldCheck size={20} /></div><div><b>GroundTruth</b><span>FIELD INTELLIGENCE</span></div></div><div className="workspace-switcher"><span className="workspace-dot" />Impact operations<span className="workspace-caret"><ChevronDown size={15} /></span></div><nav>{navItems.map(([label, Icon]) => <button key={label} className={activeNav === label ? "nav-item active" : "nav-item"} onClick={() => { setActiveNav(label); setMobileNav(false); }}><Icon size={17} /><span>{label}</span>{label === "Verification" && <i>4</i>}</button>)}</nav><div className="sidebar-bottom"><div className="system-label"><span className="live-dot" />All systems operational</div><button className="nav-item"><CircleHelp size={17} /><span>Help center</span></button><div className="user-row"><div className="avatar">AS</div><div><b>Arjun Sharma</b><span>Program lead</span></div><MoreHorizontal size={17} /></div></div></aside><section className="main-content"><header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileNav(!mobileNav)} aria-label="Open navigation"><Menu size={20} /></button><div className="crumb"><span>Workspace</span><b>/</b><strong>{activeNav}</strong></div><div className="top-actions"><label className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search evidence, projects..." /></label><button className="icon-button" aria-label="Notifications"><Bell size={18} /><em /></button><div className="demo-badge"><span />DEMO MODE</div></div></header><div className="page-wrap"><section className="hero-row"><div><p className="eyebrow accent">IMPACT OPERATIONS · SEPTEMBER 2024</p><h1>Good morning, Arjun.</h1><p className="hero-copy">Your field evidence is becoming a clearer picture of impact.</p></div><div className="hero-actions"><button className="secondary-button"><UploadCloud size={16} />Upload evidence</button><button className="primary-button"><Sparkles size={16} />Generate impact story</button></div></section><div className="notice"><div className="notice-icon"><Sparkles size={17} /></div><div><b>Evidence intelligence is ready</b><span>12 new assets analyzed across 3 active projects in the last 7 days.</span></div><button>View analysis <ArrowUpRight size={14} /></button></div><section className="metric-grid"><Metric label="Active projects" value="03" detail="+1 this month" /><Metric label="Evidence assets" value="36" detail="12 analyzed this week" tone="green" /><Metric label="Verified media" value="24" detail="66.7% of evidence" tone="green" /><Metric label="Needs attention" value="07" detail="2 potential reuses" tone="amber" /><Metric label="Average trust" value="82.4" detail="+4.8 from last month" /></section><div className="content-grid"><section className="panel impact-panel"><div className="panel-heading"><div><p className="eyebrow">Portfolio signal</p><h2>Impact health</h2></div><button className="text-button">Last 30 days <ChevronDown size={14} /></button></div><div className="health-layout"><div className="health-score"><div className="big-score">82<span>/100</span></div><p>Evidence-backed confidence</p><div className="progress-track"><span style={{ width: "82%" }} /></div><small>+4.8 points from last month</small></div><div className="bars">{[62, 74, 58, 88, 72, 94, 82].map((height, index) => <div className="bar-column" key={index}><div className="bar" style={{ height: `${height}%` }} /><span>{["24", "25", "26", "27", "28", "29", "30"][index]}</span></div>)}</div></div><div className="legend"><span><i className="legend-blue" />Trust score</span><span><i className="legend-line" />Monthly average</span></div></section><section className="panel distribution-panel"><div className="panel-heading"><div><p className="eyebrow">Evidence status</p><h2>Verification mix</h2></div><button className="icon-button"><MoreHorizontal size={18} /></button></div><div className="donut-wrap"><div className="donut"><div><strong>36</strong><span>assets</span></div></div><div className="status-list">{statusCounts.slice(0, 4).map(({ status, count }) => <div key={status}><span><i className={`status-dot ${statusStyles[status]}`} />{status.replaceAll("_", " ")}</span><b>{count}</b></div>)}</div></div><p className="panel-footnote"><AlertTriangle size={14} /> 2 items need human verification</p></section></div><section className="lower-grid"><section className="panel evidence-panel"><div className="panel-heading"><div><p className="eyebrow">Latest intelligence</p><h2>Recent evidence</h2></div><button className="text-button">View all <ArrowUpRight size={14} /></button></div><div className="evidence-table"><div className="table-head"><span>Evidence</span><span>Project</span><span>Captured</span><span>Trust</span><span>Status</span></div>{filteredEvidence.slice(0, 5).map((evidence) => <button className="evidence-row" key={evidence.id} onClick={() => setSelectedEvidence(evidence)}><div className="evidence-name"><img src={evidence.imageUrl} alt="" /><span><b>{evidence.id}</b><strong>{evidence.caption}</strong></span></div><span>{evidence.projectName}</span><span>{evidence.capturedAt}</span><span className="trust-number">{evidence.trustScore}</span><span><i className={`status-pill ${statusStyles[evidence.status]}`}>{evidence.status === "POSSIBLE_REUSE" ? "POSSIBLE REUSE" : evidence.status.replaceAll("_", " ")}</i></span></button>)}</div></section><section className="panel projects-panel"><div className="panel-heading"><div><p className="eyebrow">Portfolio</p><h2>Project pulse</h2></div><button className="icon-button"><MoreHorizontal size={18} /></button></div>{demoProjects.map((project) => <div className="project-row" key={project.id}><div className="project-icon"><MapPin size={16} /></div><div className="project-info"><b>{project.name}</b><span>{project.location} · {project.category}</span><div className="mini-progress"><i style={{ width: `${project.coverage}%` }} /></div></div><strong>{project.trustScore}</strong></div>)}</section></section><footer className="footer-line"><span><Cloud size={14} /> Cloudinary media pipeline</span><span><Database size={14} /> Qdrant semantic memory</span><span><Activity size={14} /> Pathway stream <i>offline fallback</i></span><span>GroundTruth v0.1</span></footer></div></section>{selectedEvidence && <EvidenceDrawer evidence={selectedEvidence} onClose={() => setSelectedEvidence(null)} />}</main>;
 }
